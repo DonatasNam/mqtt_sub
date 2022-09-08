@@ -14,6 +14,9 @@
 
 sqlite3 *db;
 
-sqlite3* db_init(int *err);
+static void get_date(char **tim);
+static int create_table(sqlite3 *db);
+
+sqlite3* db_init();
 int db_add(sqlite3*db, char* topic, char* text);
 int db_print();

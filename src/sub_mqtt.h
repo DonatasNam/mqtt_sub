@@ -2,7 +2,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <json-c/json.h>
+#include <argp.h>
+#include <argp.h>
 
 #ifndef CONFIG_H
 #include "config_get.h"
@@ -13,41 +15,23 @@
 #define DB_H
 #endif
 
-struct mosq_conf{
+#define MORE 10
+#define LESS 11
+#define EQUAL 12
+#define NEQUAL 13
+#define MORE_EQ 14
+#define LESS_EQ 15
 
-    /***conf data ***/
-    char * host;
-    int port;
-    int keepalive;
-    int mid;
-
-    /***sub data ***/
-    char *topics;
-    int t_count;
-
-    /*** User credentials ***/
-    bool credentials;
-    const char *username;
-    const char *password;
-
-    /*** TLS certificate files ***/
-    bool tls;
-    const char *cafile;
-    const char *capath;
-    const char *cerfile;
-    const char *keyfile;
-
-    /*** message data***/
-    void *u_payload;
-    char *u_topic;
-};
-
-
-void on_connect_cb(struct mosquitto *mosq, void *obj, int result);
 void on_message_cb(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message);
+static int bulk_sub(struct mosquitto *mosq,topic **t_head);
+static char* payload_parse(char *payload,char *key);
+static int evaluate_event_int(int value, int expected, int operator);
+static int evaluate_event_string(char* value, char *expected, int operator);
+static int evaluate_event(char *payload, char* exp, char *key, int operator, int type);
+static int event_handler(event *ev_head, char *payload);
+static int check_for_event(topic *t_head,char *tpc, char *payload);
 
-struct mosquitto *mqtt_init(int *err, struct mosq_conf*mconf);
-int mqtt_start(struct mosquitto *mosq, struct mosq_conf *mconf, topic **head_ref);
-int bulk_sub(struct mosquitto *mosq,topic **head_ref);
+struct mosquitto *mqtt_init(config *conf);
+int mqtt_start(struct mosquitto *mosq, config *conf, topic **head_ref);
 
 

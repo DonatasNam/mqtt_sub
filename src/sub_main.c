@@ -5,48 +5,95 @@ void sig_hndlr(int signum){
     syslog(LOG_INFO, "system signal recieved");
 }
 
-int main(int arc, char **argv){
+error_t parse_opt(int key, char *arg, struct argp_state *state)
+{
+    config *conf = state->input;
+    switch (key)
+    {
+    case 'h':
+        conf->host= arg;
+        break;
+    case 'p':
+        conf->port= atoi(arg);
+        break;
+    case 'k':
+        conf->keepalive= atoi(arg);
+        break;
+    case 'U':
+        conf->credentials = CREDENTIALS_ON;
+        conf->username= arg;
+        break;
+    case 'P':
+        conf->credentials = CREDENTIALS_ON;
+        conf->password= arg;
+        break;
+    case 'C':
+        conf->tls =TLS_ON;
+        conf->capath= arg;
+        break;
+    case 'F':
+        conf->tls =TLS_ON;
+        conf->cafile = arg;
+        break;
+    case 'K':
+        conf->tls = TLS_ON;
+        conf->keyfile= arg;
+        break;
+    case ARGP_KEY_ARG:
+        if (state->arg_num >= 3)
+            argp_usage(state);
+            conf->args[state->arg_num] = arg;
+        break;
+    case ARGP_KEY_END:
+        if ((!conf->host) ||(!conf->port) ||(!conf->keepalive)){
+            argp_usage(state);
+        }
+        break;
+    default:
+        return ARGP_ERR_UNKNOWN;
+    }
+    return 0;
+}
+
+int main(int argc, char **argv){
 
     struct mosquitto *mosq =NULL;
-    struct mosq_conf mconf;
-    topic* head_ref = NULL;
-    char path[]= "mqtt_sub.mqtt_topics_sct.topic";
+    config conf;
+    conf.topic =NULL;
+    topic* t_head = NULL;
+    event* e_head = NULL;
+    char *config_name= "mqtt_sub";
     int rc =0;
-    mconf.u_topic =NULL;
-    mconf.u_payload =NULL;
-    mconf.credentials= false;
-    mconf.tls=false;
-    mconf.host = "test.mosquitto.org";
-    mconf.port = 1883;
-    mconf.keepalive =60;
 
     openlog("mqtt_sub",LOG_PID, LOG_USER);
-
-    rc = config_entry_list(&head_ref,path);
+    
+    rc =argp_parse(&argp, argc, argv, 0, 0, &conf);
+    rc = load_uci_config(&t_head,&e_head,config_name);
+    conf.topic=t_head;
     if (rc != UCI_OK){
         goto free_list;
     }
-    db= db_init(&rc);
-    if (!db || rc != SQLITE_OK){
+
+    db= db_init();
+    if (!db){
         goto close_db;
     }
 
-    mosq = mqtt_init(&rc, &mconf);
-    if (!mosq || rc != MOSQ_ERR_SUCCESS){
+    mosq = mqtt_init(&conf);
+    if (!mosq){
         goto mosquitto_close;
     }
 
-    rc = mqtt_start(mosq, &mconf,&head_ref);
+    rc = mqtt_start(mosq, &conf,&t_head);
     if (rc != MOSQ_ERR_SUCCESS){
         goto mosquitto_stop;
     }
-
     while(!stop){
-        sleep(1);
+        sleep(5);
     }
 
     free_list:
-    delete_list(head_ref);
+    delete_full_list(t_head);
 
     mosquitto_stop:
     mosquitto_loop_stop(mosq,true);

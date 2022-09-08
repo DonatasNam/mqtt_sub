@@ -1,12 +1,13 @@
 SRC:= sub_main.c sub_db.c sub_mqtt.c config_get.c
 
-LDFLAGS:= -lmosquitto -lsqlite3 -luci
+LDFLAGS:= -lmosquitto -lsqlite3 -luci -ljson-c -largp
+CFLAGS:= -o
 .PHONY:all clean
 
 all:mqtt_sub
 
 mqtt_sub: $(SRC)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) $@ $^ $(LDFLAGS)
 
 clean:
 	rm -rf mqtt_sub
