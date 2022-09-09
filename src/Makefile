@@ -1,6 +1,6 @@
-SRC:= sub_main.c sub_db.c sub_mqtt.c config_get.c
+SRC:= sub_main.c sub_db.c sub_mqtt.c config_get.c email.c
 
-LDFLAGS:= -lmosquitto -lsqlite3 -luci -ljson-c -largp
+LDFLAGS:= -lmosquitto -lsqlite3 -luci -ljson-c -largp -lcurl
 CFLAGS:= -o
 .PHONY:all clean
 

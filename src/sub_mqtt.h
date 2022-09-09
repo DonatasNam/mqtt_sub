@@ -4,12 +4,17 @@
 #include <string.h>
 #include <json-c/json.h>
 #include <argp.h>
-#include <argp.h>
+
+#ifndef EMAIL_H
+#include "email.h"
+#define EMAIL_H
+#endif
 
 #ifndef CONFIG_H
 #include "config_get.h"
 #define CONFIG_H
 #endif
+
 #ifndef DB_H
 #include "sub_db.h"
 #define DB_H

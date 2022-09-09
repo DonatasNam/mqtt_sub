@@ -36,7 +36,7 @@ static void append_topic(topic **head, topic *node){
 
 */
 
-static event* event_node(const char* tpc, const char* key, const char*email,const char* password, const char*recipient, const char *operator, const char *type, const char* value){
+static event* event_node(const char* tpc, const char* key, const char*email,const char* password,const char *smtp, const char*recipient, const char *operator, const char *type, const char* value){
     
     event *node =NULL;
     node = (event *)malloc(sizeof(event));
@@ -48,6 +48,7 @@ static event* event_node(const char* tpc, const char* key, const char*email,cons
     strncpy(node->key,key,31);
     strncpy(node->email,email,63);
     strncpy(node->password,password,63);
+    strncpy(node->smtp_server,smtp,31);
     strncpy(node->recipient,recipient,63);
     node->operator=atoi(operator);
     node->type = atoi(type);
@@ -171,6 +172,7 @@ static void create_event_list(struct uci_context *ctx, struct uci_package *pack,
                 uci_lookup_option_string(ctx,section,"key"),
                 uci_lookup_option_string(ctx,section,"email"),
                 uci_lookup_option_string(ctx,section,"password"),
+                uci_lookup_option_string(ctx,section,"smtp"),
                 uci_lookup_option_string(ctx,section,"recipient"),
                 uci_lookup_option_string(ctx,section,"operator"),
                 uci_lookup_option_string(ctx,section,"type"),

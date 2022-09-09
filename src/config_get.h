@@ -33,6 +33,7 @@ typedef struct event
     char email[64];
     char password[64];
     char recipient[64];
+    char smtp_server[32];
     int operator;
     int type;
     struct event *next;
@@ -60,10 +61,7 @@ typedef struct config_data{
 
     /*** TLS certificate files ***/
     int tls;
-    const char *cafile;
-    const char *capath;
-    const char *cerfile;
-    const char *keyfile;
+    const char *ca_path;
     /*** list from congig file***/
 
     topic *topic;
@@ -74,7 +72,7 @@ typedef struct config_data{
 
 static topic *topic_node(char *tpc);
 static void append_topic(topic **head, topic *node);
-static event* event_node(const char* tpc, const char* key, const char*email,const char* password, const char*recipient, const char *operator, const char *type, const char* value);
+static event* event_node(const char* tpc, const char* key, const char*email,const char* password,const char * smtp, const char*recipient, const char *operator, const char *type, const char* value);
 static void append_event(event **head,event *node);
 static void delete_event_list(event *head);
 static void append_to_topics(topic * t_tmp, event *e_tmp);

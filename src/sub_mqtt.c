@@ -181,7 +181,10 @@ static int event_handler(event *ev_head, char *payload){
 
         rc = evaluate_event(payload,ev_head->value,ev_head->key,ev_head->operator,ev_head->type);
         if(rc == EVENT_TRUE){   
-            //send event
+            rc =send_mail(e_tmp,payload);
+            if(rc != CURLE_OK){
+                return rc;
+            }
         }
 
         e_tmp = e_tmp->next;
@@ -246,7 +249,7 @@ struct mosquitto *mqtt_init(config *conf){
         }
     }
     if (conf->tls == true){
-        rc =mosquitto_tls_set(mosq,conf->cafile,conf->capath,conf->cerfile,conf->keyfile,NULL);
+        rc =mosquitto_tls_set(mosq,conf->ca_path,NULL,NULL,NULL,NULL);
         if(rc != MOSQ_ERR_SUCCESS){
             syslog(LOG_ERR,"%s err: %d\n",mosquitto_strerror(rc),rc);
             return NULL;

@@ -27,17 +27,9 @@ error_t parse_opt(int key, char *arg, struct argp_state *state)
         conf->credentials = CREDENTIALS_ON;
         conf->password= arg;
         break;
-    case 'C':
+    case 't':
         conf->tls =TLS_ON;
-        conf->capath= arg;
-        break;
-    case 'F':
-        conf->tls =TLS_ON;
-        conf->cafile = arg;
-        break;
-    case 'K':
-        conf->tls = TLS_ON;
-        conf->keyfile= arg;
+        conf->ca_path= arg;
         break;
     case ARGP_KEY_ARG:
         if (state->arg_num >= 3)
