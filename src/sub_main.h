@@ -22,7 +22,9 @@ struct argp_option options[]= {
     {"keep-alive",  'k', "KEEPALIVE",   0, "Seconds before subscriber sends acknowledgement request"},
     {"username",    'U', "USRNAME",     OPTION_ARG_OPTIONAL, "username for mqtt broker"},
     {"password",    'P', "PASS",        OPTION_ARG_OPTIONAL, "password for mqtt broker"},
-    {"tls",         't', "PATH",        OPTION_ARG_OPTIONAL, "path to certificate folder"},
+    {"tls",         't', "PATH",        OPTION_ARG_OPTIONAL, "path to certificate .pem file"},
+    {"Certfile",    'C', "CERT",        OPTION_ARG_OPTIONAL, "path to certificate user .ca file"},
+    {"Key",         'K', "KEY",         OPTION_ARG_OPTIONAL, "path to certificate user key file"},
     {0}
 };
 
