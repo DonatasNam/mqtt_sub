@@ -257,7 +257,7 @@ struct mosquitto *mqtt_init(config *conf){
         }
     }
     if (conf->tls == true){
-        rc =mosquitto_tls_set(mosq,conf->ca_path,NULL,NULL,NULL,NULL);
+        rc =mosquitto_tls_set(mosq,conf->ca_path,conf->ca_file,conf->key_file,NULL,NULL);
         if(rc != MOSQ_ERR_SUCCESS){
             syslog(LOG_ERR,"%s err: %d\n",mosquitto_strerror(rc),rc);
             return NULL;
