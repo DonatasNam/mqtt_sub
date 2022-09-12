@@ -67,7 +67,8 @@ int main(int argc, char **argv){
 
     openlog("mqtt_sub",LOG_PID, LOG_USER);
     
-    rc =argp_parse(&argp, argc, argv, 0, 0, &conf);
+    argp_parse(&argp, argc, argv, 0, 0, &conf);
+
     rc = load_uci_config(&t_head,&e_head,config_name);
     conf.topic=t_head;
     if (rc != UCI_OK){
@@ -88,8 +89,9 @@ int main(int argc, char **argv){
     if (rc != MOSQ_ERR_SUCCESS){
         goto mosquitto_stop;
     }
+
     while(!stop){
-        sleep(5);
+        sleep(1);
     }
 
     free_list:

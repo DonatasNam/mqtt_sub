@@ -41,6 +41,7 @@ static event* event_node(const char* tpc, const char* key, const char*email,cons
     event *node =NULL;
     node = (event *)malloc(sizeof(event));
     if(!node){
+        syslog(LOG_ERR,"Failed to read config event");
         return NULL;
     }
     strncpy(node->topic,tpc,127);
@@ -191,11 +192,20 @@ static int uci_get_events(event **e_head,char *path){
     struct uci_package *pack;
     ctx = uci_alloc_context();
     if(!ctx){
+        char *errrstr;
+        uci_get_errorstr(ctx,&errrstr,NULL);
+        syslog(LOG_ERR,"%s", errrstr);
+        free(errrstr);
+        uci_free_context(ctx);
         return CONFIG_READ_ERR;
     }
     uci_load(ctx,path,&pack);
     if(!pack){
-        uci_perror(ctx, "uci_load()");
+
+        char *errrstr;
+        uci_get_errorstr(ctx,&errrstr,NULL);
+        syslog(LOG_ERR,"%s", errrstr);
+        free(errrstr);
         uci_free_context(ctx);
         return CONFIG_READ_ERR;
     }

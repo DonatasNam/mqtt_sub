@@ -35,6 +35,7 @@ static char *mail_message(char *recipient, char *email, char *subject, char *msg
     strlen(recipient) + strlen(email) + strlen(subject) + 40));
 
     if ( message == NULL ){
+		syslog(LOG_ERR,"Failed to form an email message");
         return NULL;
     }
 

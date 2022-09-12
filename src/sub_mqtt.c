@@ -55,21 +55,26 @@ static char* payload_parse(char *payload,char *key){
     struct json_object *val;
     tok =json_tokener_new_ex(JSON_TOKENER_DEFAULT_DEPTH);
     if(!tok){
+        syslog(LOG_ERR,"Failed to init a json tokener object");
         return NULL;
     }
     obj =json_tokener_parse_ex(tok,payload,(strlen(payload)+1));
     if(!obj){
+        syslog(LOG_ERR,"Failed to parse a json object");
         return NULL;
     }
     val =json_object_object_get(obj,key);
     if(!val){
+        syslog(LOG_ERR,"Failed to retrieve json object field associated with key");
         return NULL;
     }
 
     result = strdup(json_object_to_json_string(val));
-    
     int ret = 0;
     ret = json_object_put(obj);
+    if(ret != 1){
+        syslog(LOG_EMERG,"Failed to free json object memory leak possible");
+    }
     json_tokener_free(tok);
     return result;
 }
@@ -173,6 +178,7 @@ static int event_handler(event *ev_head, char *payload){
 
     int rc = 0;
     if (!ev_head){
+        syslog(LOG_ERR,"Event handler failed to get event data from config err: %d",CONFIG_READ_ERR);
         return CONFIG_READ_ERR;
     }
     event *e_tmp = ev_head;
@@ -183,6 +189,7 @@ static int event_handler(event *ev_head, char *payload){
         if(rc == EVENT_TRUE){   
             rc =send_mail(e_tmp,payload);
             if(rc != CURLE_OK){
+                syslog(LOG_ERR,"%s err:%d",curl_easy_strerror(rc),rc);
                 return rc;
             }
         }
@@ -197,6 +204,7 @@ static int check_for_event(topic *t_head,char *tpc, char *payload){
     int rc =0;
 
     if (!t_head){
+        syslog(LOG_ERR,"Event handler failed to get event data from config err: %d",CONFIG_READ_ERR);
         return CONFIG_READ_ERR;
     }
     topic *t_tmp = t_head;
