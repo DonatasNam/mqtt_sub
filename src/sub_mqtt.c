@@ -6,18 +6,21 @@
 void on_message_cb(struct mosquitto *mosq, void *obj, const struct mosquitto_message *message)
 {   
     int rc = 0;
+    struct json_object *ob;
     config *conf;
     conf = (config *)obj;
-    rc =check_for_event(conf->topic,message->topic, (char *)message->payload);
-    if(rc != EVENT_FALSE){
-        syslog(LOG_WARNING,"Event not possible for this topic, return code :%d", rc);
-    }
-    if(rc !=EVENT_TRUE){
-        syslog(LOG_WARNING,"Event not possible for this topic, return code :%d", rc);
-    }
     rc =db_add(db,message->topic,(char*)message->payload);
     if(rc != MOSQ_ERR_SUCCESS){
         syslog(LOG_ERR,"%s, err: %d", sqlite3_errstr(rc), rc);
+    }
+    ob =json_tokener_parse((char*)message->payload);
+    if(!ob){
+        syslog(LOG_WARNING,"Wrong message format for topic: %s",message->topic);
+    }else{
+        rc =check_for_event(conf->topic,message->topic, (char *)message->payload);
+        if(rc != EVENT_FALSE && rc !=EVENT_TRUE){
+            syslog(LOG_WARNING,"Event not possible for this topic %s, return code :%d",message->topic, rc);
+        }
     }
     return;
 }
@@ -55,20 +58,18 @@ static char* payload_parse(char *payload,char *key){
     struct json_object *val;
     tok =json_tokener_new_ex(JSON_TOKENER_DEFAULT_DEPTH);
     if(!tok){
-        syslog(LOG_ERR,"Failed to init a json tokener object");
         return NULL;
     }
     obj =json_tokener_parse_ex(tok,payload,(strlen(payload)+1));
     if(!obj){
-        syslog(LOG_ERR,"Failed to parse a json object");
+        json_tokener_reset(tok);
         return NULL;
     }
     val =json_object_object_get(obj,key);
     if(!val){
-        syslog(LOG_ERR,"Failed to retrieve json object field associated with key");
         return NULL;
     }
-
+    
     result = strdup(json_object_to_json_string(val));
     int ret = 0;
     ret = json_object_put(obj);
@@ -80,39 +81,72 @@ static char* payload_parse(char *payload,char *key){
 }
 
 
-static int evaluate_event_int(int value, int expected, int operator){   
+static int __evaluate_event(char* value, char* expected, int operator,int type){   
 
     int rc =0;
     switch (operator)
     {
     case MORE:
-       if (value > expected){
-            rc =EVENT_TRUE;
+        if (type == 1){
+            return INVALID_OP;
+        }else{
+            if (atoi(value) > atoi(expected)){
+                rc =EVENT_TRUE;
+            }
         }
         break;
     case LESS:
-        if (value < expected){
-            rc = EVENT_TRUE;
+        if (type == 1){
+            return INVALID_OP;
+        }else{
+            if (atoi(value) < atoi(expected)){
+                rc =EVENT_TRUE;
+            }
         }
         break;
     case EQUAL:
-        if (value == expected){
-            rc = EVENT_TRUE;
+        if (type == 1){
+
+            if (strcmp(value,expected) == 0){
+                rc =EVENT_TRUE;
+            }
+        }else{
+
+            if (atoi(value) == atoi(expected)){
+                rc =EVENT_TRUE;
+            }
         }
         break;
     case NEQUAL:
-        if (value != expected){
-            rc =EVENT_TRUE;    
+
+        if (type == 1){
+
+            if (strcmp(value,expected) != 0){
+                rc =EVENT_TRUE;
+            }
+        }else{
+
+            if (atoi(value) != atoi(expected)){
+                rc =EVENT_TRUE;
+            }
         }
         break;
     case MORE_EQ:
-        if (value >= expected){
-            rc =EVENT_TRUE;
+        if (type == 1){
+            return INVALID_OP;
+        }else{
+            if (atoi(value) >= atoi(expected)){
+                rc =EVENT_TRUE;
+            }
         }
         break;
     case LESS_EQ:
-        if (value <= expected){
-            rc =EVENT_TRUE;
+        if (type == 1){
+            return INVALID_OP;
+        }else{
+            if (atoi(value) <= atoi(expected)){
+                rc =EVENT_TRUE;
+            }
         }
         break;
     default:
@@ -121,29 +155,6 @@ static int evaluate_event_int(int value, int expected, int operator){
     }
     return rc;
 }
-
-static int evaluate_event_string(char* value, char *expected, int operator){  
-
-    int rc =0;
-    switch (operator)
-    {
-    case EQUAL:
-        if (strncmp(value,expected,strlen(expected)) == 0){
-            rc =EVENT_TRUE;
-        }
-        break;
-    case NEQUAL:
-        if (strncmp(value,expected,strlen(expected)) != 0){
-            rc =EVENT_TRUE;     
-        }
-        break;
-    default:
-        rc =INVALID_OP;
-        break;
-    }
-    return rc;
-}
-
 
 static int evaluate_event(char *payload, char* exp, char *key, int operator, int type){
 
@@ -153,23 +164,10 @@ static int evaluate_event(char *payload, char* exp, char *key, int operator, int
     int expected = 0; 
     event_val =payload_parse(payload,key);
     if(!event_val){
+        syslog("Failed to parse topic: s value \"%s\"",key);
         return PARSE_ERR;
     }
-
-    switch(type)
-    {
-    case 0:
-        value =atoi(event_val);
-        expected =atoi(exp);
-        rc = evaluate_event_int(value,expected,operator);
-        break;
-    case 1:
-        rc =evaluate_event_string(event_val,exp,operator);
-        break;
-    default:
-        rc = INVALID_TYPE;
-        break;
-    }
+    __evaluate_event(event_val,exp,operator,type);
     free(event_val);
     return rc;
 }
@@ -257,7 +255,7 @@ struct mosquitto *mqtt_init(config *conf){
         }
     }
     if (conf->tls == true){
-        rc =mosquitto_tls_set(mosq,conf->ca_path,conf->ca_file,conf->key_file,NULL,NULL);
+        rc =mosquitto_tls_set(mosq,conf->ca_file,NULL,conf->cert_file,conf->key_file,NULL);
         if(rc != MOSQ_ERR_SUCCESS){
             syslog(LOG_ERR,"%s err: %d\n",mosquitto_strerror(rc),rc);
             return NULL;
@@ -271,16 +269,15 @@ int mqtt_start(struct mosquitto *mosq, config *conf, topic **head_ref){
     int rc = 0;
     rc =mosquitto_connect(mosq,conf->host,conf->port,conf->keepalive);
     if(rc != MOSQ_ERR_SUCCESS){
+    
         syslog(LOG_ERR,"%s err: %d\n",mosquitto_strerror(rc),rc);
         return rc;
     }
-    
     rc =bulk_sub(mosq,head_ref);
     if(rc != MOSQ_ERR_SUCCESS){
         syslog(LOG_ERR,"%s err: %d\n",mosquitto_strerror(rc),rc);
         return rc;
     }
-
     rc =mosquitto_loop_start(mosq);
         if(rc != MOSQ_ERR_SUCCESS){
         syslog(LOG_ERR,"%s err: %d\n",mosquitto_strerror(rc),rc);

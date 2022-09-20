@@ -9,6 +9,7 @@
 #define SYSLOG_H
 #endif
 
+#define CONFIG_FILE "mqtt_sub"
 typedef enum{
 
     EVENT_FALSE = 0,
@@ -61,8 +62,8 @@ typedef struct config_data{
 
     /*** TLS certificate files ***/
     int tls;
-    const char *ca_path;
     const char *ca_file;
+    const char *cert_file;
     const char *key_file;
     /*** list from congig file***/
 
